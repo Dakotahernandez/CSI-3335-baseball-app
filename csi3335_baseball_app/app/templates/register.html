@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel form-panel">
+    <h1>Create Account</h1>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.username.label(class="form-label") }}
+            {{ form.username(class="form-input") }}
+            {% for error in form.username.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-input") }}
+            {% for error in form.email.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-input") }}
+            {% for error in form.password.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.confirm_password.label(class="form-label") }}
+            {{ form.confirm_password(class="form-input") }}
+            {% for error in form.confirm_password.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            {{ form.submit(class="btn primary") }}
+        </div>
+    </form>
+    <p class="small-text">Already registered? <a href="{{ url_for('auth.login') }}">Sign in.</a></p>
+</section>
+{% endblock %}

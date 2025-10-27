@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel" id="team-form">
+    <h1>Team Batting Lookup</h1>
+    <p>Enter a season and load the available teams. Select a team to review batting metrics for that year.</p>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.year.label(class="form-label") }}
+            {{ form.year(class="form-input", placeholder="e.g., 2016") }}
+            {% for error in form.year.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-group">
+            {{ form.team_id.label(class="form-label") }}
+            {% if has_choices %}
+                {{ form.team_id(class="form-select") }}
+            {% else %}
+                {{ form.team_id(class="form-select", disabled=True) }}
+            {% endif %}
+            {% for error in form.team_id.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            {{ form.submit_load(class="btn secondary") }}
+            {{ form.submit_view(class="btn primary") }}
+        </div>
+    </form>
+</section>
+{% endblock %}

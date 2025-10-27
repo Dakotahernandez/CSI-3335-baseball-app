@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>{{ team.name }} ({{ team.teamID }}) &mdash; {{ year_id }}</h1>
+    <p class="meta">
+        League: {{ team.lgID }} | Franchise: {{ team.franchID }} | Record: {{ team.W }}&ndash;{{ team.L }}
+    </p>
+    <div class="table-wrapper">
+        {{ table_html|safe }}
+    </div>
+    <p class="small-text">
+        <a href="{{ url_for('core.index', year=year_id) }}">Look up another team</a>
+    </p>
+</section>
+{% endblock %}

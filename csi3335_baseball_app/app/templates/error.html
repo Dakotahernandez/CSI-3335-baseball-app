@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>We could not find that.</h1>
+    <p>{{ message }}</p>
+    <p class="small-text"><a href="{{ url_for('core.index') }}">Return home</a></p>
+</section>
+{% endblock %}
