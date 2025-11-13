@@ -6,6 +6,7 @@ This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335
 - Python 3.12 or newer
 - MariaDB server from the CSI 3335 course bundle
 - Existing `baseball` database loaded via the provided `baseball.sql`
+- Docker Desktop (optional; required if you use the bundled `run_project.sh` helper)
 
 ## Database Startup
 - Run `SQLStart.bat` followed by `SQL.bat` from the course ZIP to start MariaDB.
@@ -16,6 +17,24 @@ This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335
   \. user.sql
   ```
   This command recreates **only** the `users` table required by the web application and seeds the administrator account.
+
+## Quick Start (Docker Script)
+If you would rather not manage MariaDB manually, `run_project.sh` will launch the database inside Docker, start the Flask development server, and tear everything down when you press **Ctrl+C**.
+
+1. Make sure Docker Desktop is running.
+2. From the `csi3335_baseball_app` directory run:
+   ```bash
+   ./run_project.sh
+   ```
+3. On first launch the script looks for the course dataset at `../MYSQL/baseball.sql` or `~/MYSQL/baseball.sql`. If yours lives elsewhere, point to it with:
+   ```bash
+   BASEBALL_SQL=/absolute/path/to/baseball.sql ./run_project.sh
+   ```
+4. The script creates a local virtual environment in `.venv`, installs dependencies, and automatically reapplies `user.sql` so the `users` table stays in sync.
+5. Each time it starts, the helper verifies core baseball tables exist; if they are missing it automatically imports `baseball.sql`.
+6. Flask tries to bind to port `5000`; if it is busy the script walks upward to find the next open port (override the starting point with `FLASK_PORT=5001` if you prefer).
+
+Press **Ctrl+C** at any time to stop the Flask server and (unless it was already running) the Dockerized MariaDB instance.
 
 ## Configuration
 1. Open `csi3335f2024.py` and confirm the credentials match your MariaDB setup. Default values:
@@ -63,6 +82,8 @@ This creates migration scaffolding for future application-level metadata if need
 ## Application Routes
 - `/` – Home page with season + team lookup.
 - `/team/<team_id>/<year>` – Displays batting statistics for the selected team and season.
+- `/team/<team_id>/<year>/download` – Exports the enriched batting table as a CSV file.
+- `/team/<team_id>/<year>/compare` – Lets you select two players from the roster and view a side-by-side stat breakdown.
 - `/auth/register` – Create an account (stored in `baseball.users`).
 - `/auth/login` – Sign in.
 - `/auth/logout` – Sign out.
@@ -77,5 +98,15 @@ This creates migration scaffolding for future application-level metadata if need
 - The team lookup form enforces year bounds (1871–2024) and requires selecting a team ID available in the chosen season.
 - Queries are parameterized and never echo raw SQL.
 
+## Extra Credit Enhancements
+- Hall of Fame and All-Star badges appear next to qualified players, powered by the `halloffame` and `allstarfull` tables.
+- Advanced sabermetric columns (AVG, OBP, SLG, OPS, ISO, BABIP) are calculated on the server and rendered alongside traditional counting stats.
+- Team totals are appended to the stat table, and a slash-line summary panel highlights overall production plus season leaders.
+- Visual styling upgrades add summary cards, badge styling, and emphasize the aggregate row without altering the base layout.
+- Additional metrics now surface player ages, stolen-base success rate, wOBA, and OPS+ benchmarks derived from league-wide data.
+- A league comparison card shows AVG/OBP/SLG/OPS context and team OPS+ so viewers can gauge performance relative to the season.
+- CSV export lets viewers download the enriched table for further analysis with a single click.
+- Interactive player comparison view highlights slash lines, advanced rates, and metric-by-metric differences between any two teammates.
+
 ## Shutdown
-When finished, stop MariaDB using the provided shutdown scripts from the course ZIP.
+When finished, stop MariaDB using the provided shutdown scripts from the course ZIP. If you launched the stack with `run_project.sh`, pressing **Ctrl+C** is all you need—the helper script will stop the Flask server and the Docker container for you.

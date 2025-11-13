@@ -26,3 +26,9 @@ class TeamYearForm(FlaskForm):
     team_id = SelectField('Team', choices=[], validators=[DataRequired(message='Select a team')], coerce=str)
     submit_load = SubmitField('Load Teams')
     submit_view = SubmitField('View Team')
+
+
+class PlayerCompareForm(FlaskForm):
+    player_one = SelectField('Player One', choices=[], validators=[DataRequired()], coerce=str)
+    player_two = SelectField('Player Two', choices=[], validators=[DataRequired()], coerce=str)
+    submit = SubmitField('Compare Players')

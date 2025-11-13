@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>{{ team.name }} ({{ team.teamID }}) &mdash; {{ year_id }} Player Comparison</h1>
+    <p class="meta">
+        League: {{ team.lgID }} | Franchise: {{ team.franchID }} | Record: {{ team.W }}&ndash;{{ team.L }}
+    </p>
+    <form method="post" class="compare-form">
+        {{ form.hidden_tag() }}
+        <div class="compare-grid">
+            <div class="form-group">
+                {{ form.player_one.label(class="form-label") }}
+                {{ form.player_one(class="form-select") }}
+                {% for error in form.player_one.errors %}
+                    <span class="error-text">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.player_two.label(class="form-label") }}
+                {{ form.player_two(class="form-select") }}
+                {% for error in form.player_two.errors %}
+                    <span class="error-text">{{ error }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="form-actions compare-actions">
+            {{ form.submit(class="btn primary") }}
+            <a class="btn ghost" href="{{ url_for('core.team_view', team_id=team.teamID, year_id=year_id) }}">Back to Team</a>
+        </div>
+    </form>
+
+    {% if comparison_ready %}
+    <div class="comparison-cards">
+        {% for card in player_cards %}
+        <article class="comparison-card">
+            <h2>{{ card.name }}</h2>
+            {% if card.badges_html %}
+                <div class="badge-row">{{ card.badges_html|safe }}</div>
+            {% endif %}
+            <dl class="comparison-meta">
+                <div>
+                    <dt>Slash Line</dt>
+                    <dd>{{ card.slash_line }}</dd>
+                </div>
+                <div>
+                    <dt>OPS</dt>
+                    <dd>{{ card.ops_display }}</dd>
+                </div>
+                <div>
+                    <dt>OPS+</dt>
+                    <dd>{{ card.ops_plus_display }}</dd>
+                </div>
+                <div>
+                    <dt>SB%</dt>
+                    <dd>{{ card.sb_pct_display }}</dd>
+                </div>
+            </dl>
+        </article>
+        {% endfor %}
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table comparison-table">
+            <thead>
+                <tr>
+                    <th scope="col">Stat</th>
+                    <th scope="col">{{ player_cards[0].name }}</th>
+                    <th scope="col">{{ player_cards[1].name }}</th>
+                    <th scope="col">Difference</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison_rows %}
+                <tr>
+                    <th scope="row">{{ row.label }}</th>
+                    <td>{{ row.player_one }}</td>
+                    <td>{{ row.player_two }}</td>
+                    <td class="diff {{ row.diff_class }}">{{ row.difference }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

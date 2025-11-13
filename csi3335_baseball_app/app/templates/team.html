@@ -6,6 +6,53 @@
     <p class="meta">
         League: {{ team.lgID }} | Franchise: {{ team.franchID }} | Record: {{ team.W }}&ndash;{{ team.L }}
     </p>
+    {% if summary %}
+    <div class="summary-panel">
+        <h2>Advanced Team Snapshot</h2>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>Slash Line</h3>
+                <p><strong>AVG:</strong> {{ summary.team_avg }}</p>
+                <p><strong>OBP:</strong> {{ summary.team_obp }}</p>
+                <p><strong>SLG:</strong> {{ summary.team_slg }}</p>
+                <p><strong>OPS:</strong> {{ summary.team_ops }}</p>
+                <p><strong>wOBA:</strong> {{ summary.team_woba }}</p>
+            </div>
+            <div class="summary-card">
+                <h3>Season Totals</h3>
+                <p><strong>Home Runs:</strong> {{ summary.home_runs }}</p>
+                <p><strong>Stolen Bases:</strong> {{ summary.stolen_bases }}</p>
+                <p><strong>Hall of Famers:</strong> {{ summary.hall_of_famers }}</p>
+                <p><strong>All-Stars:</strong> {{ summary.all_stars }}</p>
+                <p><strong>SB%:</strong> {{ summary.team_sb_pct }}</p>
+            </div>
+            <div class="summary-card">
+                <h3>League Benchmarks</h3>
+                <p><strong>AVG:</strong> {{ summary.league_avg }}</p>
+                <p><strong>OBP:</strong> {{ summary.league_obp }}</p>
+                <p><strong>SLG:</strong> {{ summary.league_slg }}</p>
+                <p><strong>OPS:</strong> {{ summary.league_ops }}</p>
+                <p><strong>Team OPS+:</strong> {{ summary.team_ops_plus }}</p>
+            </div>
+            {% if leaders %}
+            <div class="summary-card">
+                <h3>Leaders</h3>
+                <ul class="leader-list">
+                    <li><strong>Home Runs:</strong> {{ leaders.home_run_leader }}</li>
+                    <li><strong>AVG:</strong> {{ leaders.avg_leader }}</li>
+                    <li><strong>OPS:</strong> {{ leaders.ops_leader }}</li>
+                    <li><strong>wOBA:</strong> {{ leaders.woba_leader }}</li>
+                    <li><strong>Stolen Bases:</strong> {{ leaders.sb_leader }}</li>
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="table-actions">
+        <a class="btn secondary" href="{{ url_for('core.team_compare', team_id=team.teamID, year_id=year_id) }}">Compare Players</a>
+        <a class="btn ghost" href="{{ url_for('core.team_download', team_id=team.teamID, year_id=year_id) }}">Download CSV</a>
+    </div>
     <div class="table-wrapper">
         {{ table_html|safe }}
     </div>
