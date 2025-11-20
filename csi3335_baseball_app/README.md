@@ -3,7 +3,7 @@
 This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335 baseball database. The backend connects to the existing `baseball` schema and only manages an additional `users` table for application authentication.
 
 ## Prerequisites
-- Python 3.12 or newer
+- Python 3.12 or newer (tested with Python 3.13.9 to match the grading environment)
 - MariaDB server from the CSI 3335 course bundle
 - Existing `baseball` database loaded via the provided `baseball.sql`
 - Docker Desktop (optional; required if you use the bundled `run_project.sh` helper)
@@ -37,16 +37,16 @@ If you would rather not manage MariaDB manually, `run_project.sh` will launch th
 Press **Ctrl+C** at any time to stop the Flask server and (unless it was already running) the Dockerized MariaDB instance.
 
 ## Configuration
-1. Open `csi3335f2024.py` and confirm the credentials match your MariaDB setup. Default values:
+1. Open `csi3335f2025.py` and confirm the credentials match your MariaDB setup. Default values:
    ```python
    mysql = {
-       'location': 'localhost',
+       'host': 'localhost',
        'user': 'web',
        'password': 'mypass',
        'database': 'baseball'
    }
    ```
-2. If your credentials differ, update the dictionary accordingly. No other configuration edits are needed.
+2. If your credentials differ, update the dictionary accordingly. The application reads this file at startup, per the 2025 project spec.
 
 ## Python Environment
 1. From the project root, create a virtual environment:
@@ -57,7 +57,7 @@ Press **Ctrl+C** at any time to stop the Flask server and (unless it was already
    - macOS/Linux: `source venv/bin/activate`
    - Windows (PowerShell): `venv\Scripts\Activate.ps1`
    - Windows (CMD): `venv\Scripts\activate.bat`
-3. Install the allowed dependencies:
+3. Install dependencies pinned to the grader’s stack (all are on the approved library list):
    ```bash
    pip install -r requirements.txt
    ```
@@ -87,6 +87,12 @@ This creates migration scaffolding for future application-level metadata if need
 - `/auth/register` – Create an account (stored in `baseball.users`).
 - `/auth/login` – Sign in.
 - `/auth/logout` – Sign out.
+
+## Submission Checklist
+- Include `user.sql`, all Flask source files, templates, and static assets (omit any virtual environment).
+- Include `csi3335f2025.py` with the `mysql` dictionary (`host`, `user`, `password`, `database`).
+- Leave `.flaskenv` in place so the project name (`PROJECT_NAME`) and `FLASK_APP` are discoverable.
+- Add this README for run instructions; we will update `csi3335f2025.py` credentials for grading.
 
 ## Administrator Account
 - Default administrator username: `admin`

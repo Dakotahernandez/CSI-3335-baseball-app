@@ -1,2 +1,3 @@
 FLASK_APP=run.py
 FLASK_ENV=development
+PROJECT_NAME=csi3335_baseball_app

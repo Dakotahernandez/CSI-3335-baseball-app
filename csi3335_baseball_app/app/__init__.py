@@ -7,7 +7,7 @@ from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 
-from csi3335f2024 import mysql
+from csi3335f2025 import mysql
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -21,7 +21,7 @@ def create_app() -> Flask:
 
     user = mysql['user']
     password = mysql['password']
-    host = mysql['location']
+    host = mysql.get('host') or mysql.get('location') or 'localhost'
     database = mysql['database']
     app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{user}:{password}@{host}/{database}"
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
