@@ -6,7 +6,6 @@ This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335
 - Python 3.12 or newer (tested with Python 3.13.9 to match the grading environment)
 - MariaDB server from the CSI 3335 course bundle
 - Existing `baseball` database loaded via the provided `baseball.sql`
-- Docker Desktop (optional; required if you use the bundled `run_project.sh` helper)
 
 ## Database Startup
 - Run `SQLStart.bat` followed by `SQL.bat` from the course ZIP to start MariaDB.
@@ -17,24 +16,6 @@ This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335
   \. user.sql
   ```
   This command recreates **only** the `users` table required by the web application and seeds the administrator account.
-
-## Quick Start (Docker Script)
-If you would rather not manage MariaDB manually, `run_project.sh` will launch the database inside Docker, start the Flask development server, and tear everything down when you press **Ctrl+C**.
-
-1. Make sure Docker Desktop is running.
-2. From the `csi3335_baseball_app` directory run:
-   ```bash
-   ./run_project.sh
-   ```
-3. On first launch the script looks for the course dataset at `../MYSQL/baseball.sql` or `~/MYSQL/baseball.sql`. If yours lives elsewhere, point to it with:
-   ```bash
-   BASEBALL_SQL=/absolute/path/to/baseball.sql ./run_project.sh
-   ```
-4. The script creates a local virtual environment in `.venv`, installs dependencies, and automatically reapplies `user.sql` so the `users` table stays in sync.
-5. Each time it starts, the helper verifies core baseball tables exist; if they are missing it automatically imports `baseball.sql`.
-6. Flask tries to bind to port `5000`; if it is busy the script walks upward to find the next open port (override the starting point with `FLASK_PORT=5001` if you prefer).
-
-Press **Ctrl+C** at any time to stop the Flask server and (unless it was already running) the Dockerized MariaDB instance.
 
 ## Configuration
 1. Open `csi3335f2025.py` and confirm the credentials match your MariaDB setup. Default values:
@@ -93,10 +74,11 @@ This creates migration scaffolding for future application-level metadata if need
 Routes other than `/auth/*` require an authenticated session.
 
 ## Submission Checklist
-- Include `user.sql`, all Flask source files, templates, and static assets (omit any virtual environment).
-- Include `csi3335f2025.py` with the `mysql` dictionary (`host`, `user`, `password`, `database`).
-- Leave `.flaskenv` in place so the project name (`PROJECT_NAME`) and `FLASK_APP` are discoverable.
-- Add this README for run instructions; we will update `csi3335f2025.py` credentials for grading.
+- Include `user.sql` (creates/replaces the `users` table and seeds the admin).
+- Include all Flask code (python files), templates, and static assets. **Do not** include your virtual environment or local database files.
+- Include `csi3335f2025.py` with the `mysql` dictionary: `{'host':'localhost','user':'web','password':'mypass','database':'baseball'}`. Graders will change values as needed.
+- Leave `.flaskenv` so `PROJECT_NAME` and `FLASK_APP` are discoverable.
+- Include this README with run/access instructions.
 
 ## Administrator Account
 - Default administrator username: `admin`
@@ -112,7 +94,7 @@ Routes other than `/auth/*` require an authenticated session.
 
 ## User Accounts and Password Policy
 - Users sign up through `/auth/register`; passwords are never stored in plaintext and are hashed with PBKDF2-SHA256.
-- Passwords must be at least 12 characters and include upper and lower case letters, a number, and a symbol.
+- No complexity rules are enforced beyond providing a password; choose a strong one for your own use.
 - You must be logged in to access team lookup, CSV download, player comparison, and trivia pages.
 
 ## Data Handling Notes
@@ -138,4 +120,4 @@ Routes other than `/auth/*` require an authenticated session.
 - Interactive player comparison view highlights slash lines, core rates, and metric-by-metric differences between any two teammates.
 
 ## Shutdown
-When finished, stop MariaDB using the provided shutdown scripts from the course ZIP. If you launched the stack with `run_project.sh`, pressing **Ctrl+C** is all you need—the helper script will stop the Flask server and the Docker container for you.
+When finished, stop MariaDB using the provided shutdown scripts from the course ZIP.
