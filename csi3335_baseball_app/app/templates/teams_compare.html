@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+    <h1>Team Comparison</h1>
+    <p class="meta">Select a season and two teams to compare batting performance side by side.</p>
+    <form method="post" class="compare-form">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.year.label(class="form-label") }}
+            {{ form.year(class="form-input", placeholder="e.g., 2016") }}
+            {% for error in form.year.errors %}
+                <span class="error-text">{{ error }}</span>
+            {% endfor %}
+        </div>
+        <div class="compare-grid">
+            <div class="form-group">
+                {{ form.team_one.label(class="form-label") }}
+                {% if has_choices %}
+                    {{ form.team_one(class="form-select") }}
+                {% else %}
+                    {{ form.team_one(class="form-select", disabled=True) }}
+                {% endif %}
+                {% for error in form.team_one.errors %}
+                    <span class="error-text">{{ error }}</span>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                {{ form.team_two.label(class="form-label") }}
+                {% if has_choices %}
+                    {{ form.team_two(class="form-select") }}
+                {% else %}
+                    {{ form.team_two(class="form-select", disabled=True) }}
+                {% endif %}
+                {% for error in form.team_two.errors %}
+                    <span class="error-text">{{ error }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="form-actions compare-actions">
+            {{ form.submit_load(class="btn secondary") }}
+            {{ form.submit_compare(class="btn primary") }}
+        </div>
+    </form>
+
+    {% if comparison_ready %}
+    <div class="comparison-cards">
+        {% for card in team_cards %}
+        <article class="comparison-card">
+            <h2>{{ card.title }}</h2>
+            <p class="meta">Record: {{ card.record }}</p>
+            <p><strong>Slash:</strong> {{ card.slash_line }}</p>
+            <p><strong>OPS:</strong> {{ card.ops }} · <strong>SB%:</strong> {{ card.sb_pct }}</p>
+            <p class="small-text">HR: {{ card.home_runs }} | SB: {{ card.stolen_bases }} | HOF: {{ card.hall_of_famers }} | All-Stars: {{ card.all_stars }}</p>
+        </article>
+        {% endfor %}
+    </div>
+
+    <div class="table-wrapper">
+        <table class="data-table comparison-table">
+            <thead>
+                <tr>
+                    <th scope="col">Stat</th>
+                    <th scope="col">{{ team_labels[0] }}</th>
+                    <th scope="col">{{ team_labels[1] }}</th>
+                    <th scope="col">Difference</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in comparison_rows %}
+                <tr>
+                    <th scope="row">{{ row.label }}</th>
+                    <td>{{ row.team_one }}</td>
+                    <td>{{ row.team_two }}</td>
+                    <td class="diff {{ row.diff_class }}">{{ row.difference }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

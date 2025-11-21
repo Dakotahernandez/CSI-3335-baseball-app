@@ -84,6 +84,7 @@ This creates migration scaffolding for future application-level metadata if need
 - `/team/<team_id>/<year>` – Displays batting statistics for the selected team and season.
 - `/team/<team_id>/<year>/download` – Exports the enriched batting table as a CSV file.
 - `/team/<team_id>/<year>/compare` – Lets you select two players from the roster and view a side-by-side stat breakdown.
+- `/teams/compare` – Compare two teams from the same season side by side.
 - `/game` – Arcade-style multiple choice trivia game with random player/team questions drawn from the database (three lives).
 - `/auth/register` – Create an account (stored in `baseball.users`).
 - `/auth/login` – Sign in.
@@ -119,15 +120,22 @@ Routes other than `/auth/*` require an authenticated session.
 - The team lookup form enforces year bounds (1871–2024) and requires selecting a team ID available in the chosen season.
 - Queries are parameterized and never echo raw SQL.
 
+## Calculations Included
+- Player age: `season_year - birthYear` when available.
+- Singles/total bases: singles = hits − doubles − triples − HR; total bases = 1B + 2×2B + 3×3B + 4×HR.
+- Plate appearances: AB + BB + HBP + SF + SH.
+- Slash line: AVG = H/AB; OBP = (H + BB + HBP) / PA; SLG = TB/AB; OPS = OBP + SLG.
+- SB%: SB / (SB + CS) when attempts > 0.
+- Team totals added as the last row in exports; leaders (HR, AVG, OPS, SB) and badges (Hall of Fame/All-Star) surface where data exists.
+
 ## Extra Credit Enhancements
 - Hall of Fame and All-Star badges appear next to qualified players, powered by the `halloffame` and `allstarfull` tables.
-- Advanced sabermetric columns (AVG, OBP, SLG, OPS, ISO, BABIP) are calculated on the server and rendered alongside traditional counting stats.
+- Core batting stats (AVG/OBP/SLG/OPS) are calculated on the server and rendered alongside traditional counting stats.
 - Team totals are appended to the stat table, and a slash-line summary panel highlights overall production plus season leaders.
 - Visual styling upgrades add summary cards, badge styling, and emphasize the aggregate row without altering the base layout.
-- Additional metrics now surface player ages, stolen-base success rate, wOBA, and OPS+ benchmarks derived from league-wide data.
-- A league comparison card shows AVG/OBP/SLG/OPS context and team OPS+ so viewers can gauge performance relative to the season.
+- Additional metrics surface player ages and stolen-base success rate; league comparison card shows AVG/OBP/SLG/OPS context.
 - CSV export lets viewers download the enriched table for further analysis with a single click.
-- Interactive player comparison view highlights slash lines, advanced rates, and metric-by-metric differences between any two teammates.
+- Interactive player comparison view highlights slash lines, core rates, and metric-by-metric differences between any two teammates.
 
 ## Shutdown
 When finished, stop MariaDB using the provided shutdown scripts from the course ZIP. If you launched the stack with `run_project.sh`, pressing **Ctrl+C** is all you need—the helper script will stop the Flask server and the Docker container for you.

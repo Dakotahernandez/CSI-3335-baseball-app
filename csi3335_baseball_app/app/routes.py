@@ -8,7 +8,7 @@ from flask_login import login_required
 from sqlalchemy import text
 
 from . import db
-from .forms import TeamYearForm, PlayerCompareForm
+from .forms import TeamYearForm, PlayerCompareForm, TeamCompareForm
 from . import queries
 
 core_bp = Blueprint('core', __name__)
@@ -85,41 +85,9 @@ def _team_batting(team_id: str, year_id: int):
     )
     dataframe['slg'] = np.where(dataframe['at_bats'] > 0, total_bases / dataframe['at_bats'], 0)
     dataframe['ops'] = dataframe['obp'] + dataframe['slg']
-    dataframe['iso'] = dataframe['slg'] - dataframe['avg']
-
-    babip_denom = (
-        dataframe['at_bats']
-        - dataframe['strikeouts']
-        - dataframe['home_runs']
-        + dataframe['sacrifice_flies']
-    )
-    dataframe['babip'] = np.where(babip_denom > 0, (dataframe['hits'] - dataframe['home_runs']) / babip_denom, 0)
 
     sb_attempts = dataframe['stolen_bases'] + dataframe['caught_stealing']
     dataframe['sb_pct'] = np.where(sb_attempts > 0, dataframe['stolen_bases'] / sb_attempts, np.nan)
-
-    singles_weight = 0.89
-    doubles_weight = 1.27
-    triples_weight = 1.62
-    home_run_weight = 2.1
-    walk_weight = 0.69
-    hbp_weight = 0.72
-
-    woba_numerator = (
-        walk_weight * dataframe['walks']
-        + hbp_weight * dataframe['hit_by_pitch']
-        + singles_weight * singles
-        + doubles_weight * dataframe['doubles']
-        + triples_weight * dataframe['triples']
-        + home_run_weight * dataframe['home_runs']
-    )
-    woba_denominator = (
-        dataframe['at_bats']
-        + dataframe['walks']
-        + dataframe['hit_by_pitch']
-        + dataframe['sacrifice_flies']
-    )
-    dataframe['woba'] = np.where(woba_denominator > 0, woba_numerator / woba_denominator, 0)
 
     league_summary = _league_batting_summary(year_id)
     league_ops = None
@@ -157,12 +125,6 @@ def _team_batting(team_id: str, year_id: int):
         league_ops = float(league_obp + league_slg) if (league_obp or league_slg) else 0.0
     else:
         league_avg = league_obp = league_slg = 0
-
-    dataframe['ops_plus'] = np.where(
-        league_ops and league_ops > 0,
-        np.where(dataframe['ops'] > 0, (dataframe['ops'] / league_ops) * 100, np.nan),
-        np.nan,
-    )
 
     def _badge_variants(row):
         html_badges = []
@@ -202,10 +164,6 @@ def _team_batting(team_id: str, year_id: int):
         'obp',
         'slg',
         'ops',
-        'iso',
-        'babip',
-        'woba',
-        'ops_plus',
         'hall_of_famer',
         'all_star',
         'badges_text',
@@ -239,10 +197,6 @@ def _team_batting(team_id: str, year_id: int):
         'OBP': dataframe['obp'].apply(_format_rate),
         'SLG': dataframe['slg'].apply(_format_rate),
         'OPS': dataframe['ops'].apply(_format_rate),
-        'ISO': dataframe['iso'].apply(_format_rate),
-        'BABIP': dataframe['babip'].apply(_format_rate),
-        'wOBA': dataframe['woba'].apply(_format_rate),
-        'OPS+': dataframe['ops_plus'].apply(lambda v: f"{int(round(v))}" if not np.isnan(v) else '—'),
     })
 
     team_at_bats = dataframe['at_bats'].sum()
@@ -255,26 +209,8 @@ def _team_batting(team_id: str, year_id: int):
     team_obp_val = (team_hits + team_walks + team_hbp) / team_plate_appearances if team_plate_appearances else 0
     team_slg_val = team_total_bases / team_at_bats if team_at_bats else 0
     team_ops_val = team_obp_val + team_slg_val
-    team_iso_val = team_slg_val - team_avg_val
-    team_babip_denom = babip_denom.sum()
-    team_babip_val = (team_hits - dataframe['home_runs'].sum()) / team_babip_denom if team_babip_denom else 0
     team_sb_attempts = (dataframe['stolen_bases'] + dataframe['caught_stealing']).sum()
     team_sb_pct = (dataframe['stolen_bases'].sum() / team_sb_attempts) if team_sb_attempts else np.nan
-    team_woba_denom = team_plate_appearances
-    team_woba_val = (
-        (
-            walk_weight * team_walks
-            + hbp_weight * dataframe['hit_by_pitch'].sum()
-            + singles_weight * singles.sum()
-            + doubles_weight * dataframe['doubles'].sum()
-            + triples_weight * dataframe['triples'].sum()
-            + home_run_weight * dataframe['home_runs'].sum()
-        ) / team_woba_denom
-        if team_woba_denom
-        else 0
-    )
-
-    team_ops_plus_val = ((team_ops_val / league_ops) * 100) if league_ops and league_ops > 0 else np.nan
 
     totals_row = {
         'Player': 'Team Totals',
@@ -296,10 +232,6 @@ def _team_batting(team_id: str, year_id: int):
         'OBP': _format_rate(team_obp_val),
         'SLG': _format_rate(team_slg_val),
         'OPS': _format_rate(team_ops_val),
-        'ISO': _format_rate(team_iso_val),
-        'BABIP': _format_rate(team_babip_val),
-        'wOBA': _format_rate(team_woba_val),
-        'OPS+': f"{int(round(team_ops_plus_val))}" if not np.isnan(team_ops_plus_val) else '—',
     }
     display_columns = pd.concat([display_columns, pd.DataFrame([totals_row])], ignore_index=True)
 
@@ -316,7 +248,6 @@ def _team_batting(team_id: str, year_id: int):
             'home_run_leader': _leader(dataframe['home_runs']),
             'avg_leader': _leader(dataframe['avg']),
             'ops_leader': _leader(dataframe['ops']),
-            'woba_leader': _leader(dataframe['woba']),
             'sb_leader': _leader(dataframe['stolen_bases']),
         }
 
@@ -325,9 +256,6 @@ def _team_batting(team_id: str, year_id: int):
         'team_obp': totals_row['OBP'],
         'team_slg': totals_row['SLG'],
         'team_ops': totals_row['OPS'],
-        'team_iso': totals_row['ISO'],
-        'team_babip': totals_row['BABIP'],
-        'team_woba': totals_row['wOBA'],
         'team_sb_pct': totals_row['SB%'],
         'home_runs': int(dataframe['home_runs'].sum()),
         'stolen_bases': int(dataframe['stolen_bases'].sum()),
@@ -338,7 +266,13 @@ def _team_batting(team_id: str, year_id: int):
         'league_obp': _format_rate(league_obp),
         'league_slg': _format_rate(league_slg),
         'league_ops': _format_rate(league_ops) if league_ops is not None else '0.000',
-        'team_ops_plus': f"{int(round(team_ops_plus_val))}" if not np.isnan(team_ops_plus_val) else '—',
+        'raw': {
+            'avg': float(team_avg_val),
+            'obp': float(team_obp_val),
+            'slg': float(team_slg_val),
+            'ops': float(team_ops_val),
+            'sb_pct': float(team_sb_pct) if not np.isnan(team_sb_pct) else np.nan,
+        },
     }
 
     return display_columns, summary, comparison_df
@@ -488,6 +422,171 @@ def index():
     return render_template('index.html', form=form, has_choices=has_choices)
 
 
+@core_bp.route('/teams/compare', methods=['GET', 'POST'])
+@login_required
+def teams_compare():
+    form = TeamCompareForm()
+    has_choices = False
+    has_two_choices = False
+
+    year_value = form.year.data if request.method == 'POST' else request.args.get('year', type=int)
+    if request.method == 'GET' and year_value:
+        form.year.data = year_value
+
+    choices = _team_choices_for_year(year_value) if year_value else []
+    if choices:
+        has_choices = True
+        has_two_choices = len(choices) >= 2
+        form.team_one.choices = choices
+        form.team_two.choices = choices
+        valid_ids = [choice[0] for choice in choices]
+        if not form.team_one.data or form.team_one.data not in valid_ids:
+            form.team_one.data = valid_ids[0]
+        if not form.team_two.data or form.team_two.data not in valid_ids or form.team_two.data == form.team_one.data:
+            form.team_two.data = valid_ids[1] if len(valid_ids) > 1 else valid_ids[0]
+    else:
+        form.team_one.choices = []
+        form.team_two.choices = []
+
+    comparison_ready = False
+    team_cards: list[dict] = []
+    comparison_rows: list[dict] = []
+
+    def _format_stat(value: float, metric_type: str) -> str:
+        if pd.isna(value):
+            return '—'
+        if metric_type == 'int':
+            return f"{int(round(value))}"
+        if metric_type == 'percent':
+            return f"{value * 100:.1f}%"
+        return f"{value:.3f}"
+
+    def _format_diff(diff_value: float, metric_type: str) -> tuple[str, str]:
+        if pd.isna(diff_value):
+            return '—', 'even'
+        if metric_type == 'int':
+            diff_int = int(round(diff_value))
+            if diff_int == 0:
+                return '0', 'even'
+            return f"{diff_int:+d}", 'positive' if diff_int > 0 else 'negative'
+        if metric_type == 'percent':
+            if abs(diff_value) < 0.0005:
+                return '0.0 pts', 'even'
+            return f"{diff_value * 100:+.1f} pts", 'positive' if diff_value > 0 else 'negative'
+        if abs(diff_value) < 0.0005:
+            return '0.000', 'even'
+        return f"{diff_value:+.3f}", 'positive' if diff_value > 0 else 'negative'
+
+    def _build_team_card(team_meta: dict, summary: dict) -> dict:
+        return {
+            'title': f"{team_meta['name']} ({team_meta['teamID']})",
+            'record': f"{team_meta['W']}-{team_meta['L']}",
+            'slash_line': f"{summary['team_avg']}/{summary['team_obp']}/{summary['team_slg']}",
+            'ops': summary['team_ops'],
+            'sb_pct': summary['team_sb_pct'],
+            'home_runs': summary['home_runs'],
+            'stolen_bases': summary['stolen_bases'],
+            'hall_of_famers': summary['hall_of_famers'],
+            'all_stars': summary['all_stars'],
+        }
+
+    if request.method == 'POST':
+        if form.submit_load.data:
+            if not has_choices:
+                flash('No teams found for that season. Enter a year between 1871 and 2024.', 'warning')
+            elif not has_two_choices:
+                flash('Need at least two teams in the season to compare.', 'warning')
+            return render_template(
+                'teams_compare.html',
+                form=form,
+                has_choices=has_choices,
+                comparison_ready=comparison_ready,
+                team_cards=team_cards,
+                team_labels=[],
+                comparison_rows=comparison_rows,
+            )
+
+        if form.submit_compare.data:
+            valid = form.validate_on_submit()
+            if not has_choices:
+                flash('Load teams for the selected season before comparing.', 'warning')
+                valid = False
+            if not has_two_choices:
+                flash('Need at least two teams in the season to compare.', 'warning')
+                valid = False
+            if form.team_one.data == form.team_two.data:
+                form.team_two.errors.append('Choose two different teams to compare.')
+                valid = False
+
+            if valid:
+                team_one_meta = _team_metadata(form.team_one.data, form.year.data)
+                team_two_meta = _team_metadata(form.team_two.data, form.year.data)
+
+                if not team_one_meta or not team_two_meta:
+                    flash('Could not find one of the selected teams for that season.', 'danger')
+                else:
+                    _, summary_one, _ = _team_batting(form.team_one.data, form.year.data)
+                    _, summary_two, _ = _team_batting(form.team_two.data, form.year.data)
+
+                    team_cards = [
+                        _build_team_card(team_one_meta, summary_one),
+                        _build_team_card(team_two_meta, summary_two),
+                    ]
+
+                    stat_config = [
+                        ('avg', 'AVG', 'rate'),
+                        ('obp', 'OBP', 'rate'),
+                        ('slg', 'SLG', 'rate'),
+                        ('ops', 'OPS', 'rate'),
+                        ('sb_pct', 'SB%', 'percent'),
+                        ('home_runs', 'Home Runs', 'int'),
+                        ('stolen_bases', 'Stolen Bases', 'int'),
+                    ]
+
+                    comparison_rows = []
+                    for key, label, metric_type in stat_config:
+                        display_map = {
+                            'avg': 'team_avg',
+                            'obp': 'team_obp',
+                            'slg': 'team_slg',
+                            'ops': 'team_ops',
+                            'sb_pct': 'team_sb_pct',
+                            'home_runs': 'home_runs',
+                            'stolen_bases': 'stolen_bases',
+                        }
+                        if key in {'home_runs', 'stolen_bases'}:
+                            value_one = float(summary_one[key])
+                            value_two = float(summary_two[key])
+                            display_one = str(summary_one[key])
+                            display_two = str(summary_two[key])
+                        else:
+                            value_one = summary_one['raw'].get(key, np.nan)
+                            value_two = summary_two['raw'].get(key, np.nan)
+                            display_one = summary_one[display_map[key]]
+                            display_two = summary_two[display_map[key]]
+
+                        diff_display, diff_class = _format_diff(value_one - value_two, metric_type)
+                        comparison_rows.append({
+                            'label': label,
+                            'team_one': display_one,
+                            'team_two': display_two,
+                            'difference': diff_display,
+                            'diff_class': diff_class,
+                        })
+
+                    comparison_ready = True
+
+    return render_template(
+        'teams_compare.html',
+        form=form,
+        has_choices=has_choices,
+        comparison_ready=comparison_ready,
+        team_cards=team_cards,
+        team_labels=[card['title'] for card in team_cards] if team_cards else [],
+        comparison_rows=comparison_rows,
+    )
+
+
 @core_bp.route('/team/<team_id>/<int:year_id>')
 @login_required
 def team_view(team_id: str, year_id: int):
@@ -569,10 +668,6 @@ def team_download(team_id: str, year_id: int):
         'OBP': raw_df['obp'].apply(_format_rate),
         'SLG': raw_df['slg'].apply(_format_rate),
         'OPS': raw_df['ops'].apply(_format_rate),
-        'ISO': raw_df['iso'].apply(_format_rate),
-        'BABIP': raw_df['babip'].apply(_format_rate),
-        'wOBA': raw_df['woba'].apply(_format_rate),
-        'OPS+': raw_df['ops_plus'].apply(lambda v: _format_int(v) if not np.isnan(v) else '—'),
         'Hall of Fame': raw_df['hall_of_famer'].apply(lambda v: 'Yes' if v else 'No'),
         'All-Star': raw_df['all_star'].apply(lambda v: 'Yes' if v else 'No'),
         'Badges': raw_df['badges_text'],
@@ -598,10 +693,6 @@ def team_download(team_id: str, year_id: int):
         'OBP': summary.get('team_obp', ''),
         'SLG': summary.get('team_slg', ''),
         'OPS': summary.get('team_ops', ''),
-        'ISO': summary.get('team_iso', ''),
-        'BABIP': summary.get('team_babip', ''),
-        'wOBA': summary.get('team_woba', ''),
-        'OPS+': summary.get('team_ops_plus', ''),
         'Hall of Fame': '',
         'All-Star': '',
         'Badges': '',
@@ -669,10 +760,6 @@ def team_compare(team_id: str, year_id: int):
         ('obp', 'OBP', 'rate'),
         ('slg', 'SLG', 'rate'),
         ('ops', 'OPS', 'rate'),
-        ('iso', 'ISO', 'rate'),
-        ('babip', 'BABIP', 'rate'),
-        ('woba', 'wOBA', 'rate'),
-        ('ops_plus', 'OPS+', 'ops_plus'),
     ]
 
     def _format_stat(value, metric_type: str) -> str:
@@ -682,15 +769,13 @@ def team_compare(team_id: str, year_id: int):
             return f"{int(round(value))}"
         if metric_type == 'percent':
             return f"{value * 100:.1f}%"
-        if metric_type == 'ops_plus':
-            return f"{int(round(value))}"
         return f"{value:.3f}"
 
     def _format_diff(diff_value, metric_type: str) -> tuple[str, str]:
         if pd.isna(diff_value):
             return '—', 'even'
 
-        if metric_type in {'int', 'ops_plus'}:
+        if metric_type in {'int'}:
             diff_int = int(round(diff_value))
             if diff_int == 0:
                 return '0', 'even'
@@ -715,7 +800,6 @@ def team_compare(team_id: str, year_id: int):
             'all_star': bool(row['all_star']),
             'slash_line': f"{_format_stat(row['avg'], 'rate')}/{_format_stat(row['obp'], 'rate')}/{_format_stat(row['slg'], 'rate')}",
             'ops_display': _format_stat(row['ops'], 'rate'),
-            'ops_plus_display': _format_stat(row['ops_plus'], 'ops_plus'),
             'sb_pct_display': _format_stat(row['sb_pct'], 'percent'),
         }
 

@@ -8,7 +8,7 @@
     </p>
     {% if summary %}
     <div class="summary-panel">
-        <h2>Advanced Team Snapshot</h2>
+        <h2>Team Snapshot</h2>
         <div class="summary-grid">
             <div class="summary-card">
                 <h3>Slash Line</h3>
@@ -16,7 +16,6 @@
                 <p><strong>OBP:</strong> {{ summary.team_obp }}</p>
                 <p><strong>SLG:</strong> {{ summary.team_slg }}</p>
                 <p><strong>OPS:</strong> {{ summary.team_ops }}</p>
-                <p><strong>wOBA:</strong> {{ summary.team_woba }}</p>
             </div>
             <div class="summary-card">
                 <h3>Season Totals</h3>
@@ -32,7 +31,6 @@
                 <p><strong>OBP:</strong> {{ summary.league_obp }}</p>
                 <p><strong>SLG:</strong> {{ summary.league_slg }}</p>
                 <p><strong>OPS:</strong> {{ summary.league_ops }}</p>
-                <p><strong>Team OPS+:</strong> {{ summary.team_ops_plus }}</p>
             </div>
             {% if leaders %}
             <div class="summary-card">
@@ -41,7 +39,6 @@
                     <li><strong>Home Runs:</strong> {{ leaders.home_run_leader }}</li>
                     <li><strong>AVG:</strong> {{ leaders.avg_leader }}</li>
                     <li><strong>OPS:</strong> {{ leaders.ops_leader }}</li>
-                    <li><strong>wOBA:</strong> {{ leaders.woba_leader }}</li>
                     <li><strong>Stolen Bases:</strong> {{ leaders.sb_leader }}</li>
                 </ul>
             </div>
