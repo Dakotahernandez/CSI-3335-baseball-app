@@ -23,7 +23,7 @@ This repository contains a ready-to-run Flask + MariaDB project for the CSI 3335
    mysql = {
        'host': 'localhost',
        'user': 'web',
-       'password': 'mypass',
+       'password': 'csi3335rocks',
        'database': 'baseball'
    }
    ```
