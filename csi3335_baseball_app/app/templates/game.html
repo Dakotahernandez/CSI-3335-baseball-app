@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel trivia-panel">
+    <div class="trivia-top">
+        <div>
+            <p class="eyebrow">Trivia</p>
+            <h1>Baseball Quiz</h1>
+            <p class="lede">Answer randomly generated questions about players and teams pulled straight from the database. Three strikes and you're out.</p>
+        </div>
+        <div class="trivia-stats">
+            <div class="stat-card">
+                <span class="stat-label">Score</span>
+                <span class="stat-value">{{ state.score }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Questions</span>
+                <span class="stat-value">{{ state.asked }}</span>
+            </div>
+            <div class="stat-card lives-card">
+                <span class="stat-label">Lives</span>
+                <div class="lives-row">
+                    {% set lives = state.lives %}
+                    {% for _ in range(lives) %}
+                        <span class="life-dot active"></span>
+                    {% endfor %}
+                    {% for _ in range(3 - lives) %}
+                        <span class="life-dot"></span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if game_over %}
+        <div class="game-over">
+            <h2>Game Over</h2>
+            <p>You ran out of lives. Hit reset to start a fresh run.</p>
+            <a class="btn primary" href="{{ url_for('core.game', reset=1) }}">Reset and Play Again</a>
+        </div>
+    {% else %}
+        {% if question %}
+            <div class="question-card">
+                <p class="meta">Multiple-choice question</p>
+                <h2>{{ question.prompt }}</h2>
+            </div>
+            <form method="post" class="choices-grid">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% for option in question.options %}
+                    {% set colors = ['violet', 'teal', 'gold', 'crimson'] %}
+                    <button type="submit" name="choice" value="{{ option.id }}" class="choice-card choice-{{ colors[loop.index0 % 4] }}">
+                        <span class="choice-letter">{{ ['A','B','C','D'][loop.index0 % 4] }}</span>
+                        <span class="choice-text">{{ option.label }}</span>
+                    </button>
+                {% endfor %}
+            </form>
+            <div class="game-actions">
+                <a class="btn ghost" href="{{ url_for('core.game', reset=1) }}">Reset Game</a>
+            </div>
+        {% else %}
+            <div class="game-over">
+                <p>Unable to load a question right now. Try resetting the game.</p>
+                <a class="btn primary" href="{{ url_for('core.game', reset=1) }}">Reset and Retry</a>
+            </div>
+        {% endif %}
+    {% endif %}
+</section>
+{% endblock %}

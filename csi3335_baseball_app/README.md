@@ -77,16 +77,19 @@ This creates migration scaffolding for future application-level metadata if need
    ```bash
    flask run
    ```
-5. Visit `http://127.0.0.1:5000/` in your browser.
+5. Visit `http://127.0.0.1:5000/` in your browser. All core pages require sign-in; you will be redirected to the login page if not authenticated.
 
 ## Application Routes
-- `/` – Home page with season + team lookup.
+- `/` – Home page with season + team lookup (requires login).
 - `/team/<team_id>/<year>` – Displays batting statistics for the selected team and season.
 - `/team/<team_id>/<year>/download` – Exports the enriched batting table as a CSV file.
 - `/team/<team_id>/<year>/compare` – Lets you select two players from the roster and view a side-by-side stat breakdown.
+- `/game` – Arcade-style multiple choice trivia game with random player/team questions drawn from the database (three lives).
 - `/auth/register` – Create an account (stored in `baseball.users`).
 - `/auth/login` – Sign in.
 - `/auth/logout` – Sign out.
+
+Routes other than `/auth/*` require an authenticated session.
 
 ## Submission Checklist
 - Include `user.sql`, all Flask source files, templates, and static assets (omit any virtual environment).
@@ -97,7 +100,19 @@ This creates migration scaffolding for future application-level metadata if need
 ## Administrator Account
 - Default administrator username: `admin`
 - Default password: `AdminPass123!`
-- The credentials are stored in `user.sql` as a hashed password using Werkzeug's PBKDF2-SHA256 scheme. Change the password by updating `user.sql` with a new hashed value if desired.
+- The credentials are stored in `user.sql` as a PBKDF2-SHA256 hash. To change it, replace the seeded hash with a new one generated via Python:
+  ```bash
+  python - <<'PY'
+  from werkzeug.security import generate_password_hash
+  print(generate_password_hash('YourNewAdminPassword'))
+  PY
+  ```
+  Then update the `pw_hash` value in `user.sql` and re-run it against the database.
+
+## User Accounts and Password Policy
+- Users sign up through `/auth/register`; passwords are never stored in plaintext and are hashed with PBKDF2-SHA256.
+- Passwords must be at least 12 characters and include upper and lower case letters, a number, and a symbol.
+- You must be logged in to access team lookup, CSV download, player comparison, and trivia pages.
 
 ## Data Handling Notes
 - All baseball tables except `users` remain read-only.

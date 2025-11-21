@@ -1,12 +1,22 @@
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, IntegerField, PasswordField, SelectField, StringField, SubmitField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange
+from wtforms.validators import DataRequired, Email, EqualTo, Length, NumberRange, Regexp
 
 
 class RegisterForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(min=3, max=64)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
-    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    password = PasswordField(
+        'Password',
+        validators=[
+            DataRequired(),
+            Length(min=12, message='Use at least 12 characters.'),
+            Regexp(
+                r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$',
+                message='Include upper and lower case letters, a number, and a symbol.',
+            ),
+        ],
+    )
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Create Account')
 

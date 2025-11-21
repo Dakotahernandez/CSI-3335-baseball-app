@@ -1,8 +1,10 @@
 from decimal import Decimal
+import random
 
 import pandas as pd
 import numpy as np
-from flask import Blueprint, flash, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, flash, make_response, redirect, render_template, request, session, url_for
+from flask_login import login_required
 from sqlalchemy import text
 
 from . import db
@@ -342,7 +344,116 @@ def _team_batting(team_id: str, year_id: int):
     return display_columns, summary, comparison_df
 
 
+def _random_player_season():
+    query = text(
+        """
+        SELECT
+            CONCAT_WS(' ', NULLIF(p.nameFirst, ''), NULLIF(p.nameLast, '')) AS player_name,
+            b.playerID AS player_id,
+            b.teamID AS team_id,
+            b.yearId AS year_id,
+            SUM(b.b_HR) AS home_runs,
+            SUM(b.b_RBI) AS runs_batted_in,
+            SUM(b.b_H) AS hits,
+            t.team_name AS team_name
+        FROM batting AS b
+        INNER JOIN people AS p ON b.playerID = p.playerID
+        INNER JOIN teams AS t ON t.teamID = b.teamID AND t.yearID = b.yearId
+        WHERE b.yearId BETWEEN 1901 AND 2024
+        GROUP BY b.playerID, b.teamID, b.yearId, p.nameFirst, p.nameLast, t.team_name
+        ORDER BY RAND()
+        LIMIT 1;
+        """
+    )
+    with db.engine.connect() as connection:
+        record = connection.execute(query).mappings().first()
+    return dict(record) if record else None
+
+
+def _team_choices_for_year_random(year_id: int, exclude_team: str, limit: int = 3):
+    query = text(
+        """
+        SELECT teamID, team_name
+        FROM teams
+        WHERE yearID = :yearId AND teamID <> :teamId
+        ORDER BY RAND()
+        LIMIT :limitVal;
+        """
+    )
+    with db.engine.connect() as connection:
+        rows = connection.execute(
+            query, {'yearId': year_id, 'teamId': exclude_team, 'limitVal': limit}
+        ).mappings().all()
+    return [dict(row) for row in rows]
+
+
+def _stat_option_values(correct_value: int, count: int = 4):
+    options = {max(0, int(correct_value))}
+    while len(options) < count:
+        jitter = random.randint(-8, 12)
+        candidate = max(0, correct_value + jitter)
+        options.add(candidate)
+    values = list(options)
+    random.shuffle(values)
+    return values
+
+
+def _generate_trivia_question():
+    record = _random_player_season()
+    if not record:
+        return None
+
+    question_builders = ['team', 'stat_hits', 'stat_home_runs', 'stat_rbi']
+    random.shuffle(question_builders)
+
+    for builder in question_builders:
+        if builder == 'team':
+            other_teams = _team_choices_for_year_random(record['year_id'], record['team_id'])
+            if len(other_teams) < 3:
+                continue
+            options = [
+                {'id': record['team_id'], 'label': f"{record['team_name']} ({record['team_id']})", 'is_correct': True}
+            ]
+            for row in other_teams:
+                options.append({'id': row['teamID'], 'label': f"{row['team_name']} ({row['teamID']})", 'is_correct': False})
+            random.shuffle(options)
+            correct_option = next(opt for opt in options if opt['is_correct'])
+            return {
+                'prompt': f"Which team did {record['player_name']} play for in {record['year_id']}?",
+                'options': [{'id': str(opt['id']), 'label': opt['label']} for opt in options],
+                'correct_id': str(correct_option['id']),
+                'correct_label': correct_option['label'],
+                'detail': f"{record['player_name']} appeared for {record['team_name']} in {record['year_id']}.",
+            }
+
+        if builder.startswith('stat_'):
+            metric_map = {
+                'stat_hits': ('hits', 'hit', 'hits'),
+                'stat_home_runs': ('home_runs', 'home run', 'home runs'),
+                'stat_rbi': ('runs_batted_in', 'RBI', 'RBIs'),
+            }
+            metric_key, singular, plural = metric_map[builder]
+            correct_value = int(record.get(metric_key) or 0)
+            option_values = _stat_option_values(correct_value)
+            options = []
+            for val in option_values:
+                label_text = singular if val == 1 else plural
+                options.append({'id': str(val), 'label': f"{val} {label_text}"})
+            random.shuffle(options)
+            answer_label = singular if correct_value == 1 else plural
+            return {
+                'prompt': f"How many {plural} did {record['player_name']} record for {record['team_name']} in {record['year_id']}?",
+                'options': options,
+                'correct_id': str(correct_value),
+                'correct_label': f"{correct_value} {answer_label}",
+                'detail': f"{record['player_name']} tallied {correct_value} {answer_label} in {record['year_id']}.",
+            }
+
+    return None
+
+
 @core_bp.route('/', methods=['GET', 'POST'])
+@login_required
 def index():
     form = TeamYearForm()
     has_choices = False
@@ -378,6 +489,7 @@ def index():
 
 
 @core_bp.route('/team/<team_id>/<int:year_id>')
+@login_required
 def team_view(team_id: str, year_id: int):
     if year_id < 1871 or year_id > 2024:
         message = f"Season {year_id} is outside the supported range."
@@ -406,6 +518,7 @@ def team_view(team_id: str, year_id: int):
     )
 
 @core_bp.route('/team/<team_id>/<int:year_id>/download')
+@login_required
 def team_download(team_id: str, year_id: int):
     if year_id < 1871 or year_id > 2024:
         message = f"Season {year_id} is outside the supported range."
@@ -503,6 +616,7 @@ def team_download(team_id: str, year_id: int):
 
 
 @core_bp.route('/team/<team_id>/<int:year_id>/compare', methods=['GET', 'POST'])
+@login_required
 def team_compare(team_id: str, year_id: int):
     if year_id < 1871 or year_id > 2024:
         message = f"Season {year_id} is outside the supported range."
@@ -672,3 +786,45 @@ def team_compare(team_id: str, year_id: int):
         comparison_rows=comparison_rows,
         summary=summary,
     )
+
+
+@core_bp.route('/game', methods=['GET', 'POST'])
+@login_required
+def game():
+    state = session.get('trivia_state') or {'lives': 3, 'score': 0, 'asked': 0}
+    reset = request.args.get('reset')
+    if reset:
+        state = {'lives': 3, 'score': 0, 'asked': 0}
+        session.pop('trivia_question', None)
+        flash('New game started! You have 3 lives.', 'info')
+
+    question = session.get('trivia_question')
+
+    if request.method == 'POST' and state['lives'] > 0:
+        selected = request.form.get('choice')
+        if question and selected:
+            is_correct = str(selected) == str(question.get('correct_id'))
+            if is_correct:
+                state['score'] = state.get('score', 0) + 1
+                flash('Correct! Keep going.', 'success')
+            else:
+                state['lives'] = max(0, state.get('lives', 0) - 1)
+                correct_label = question.get('correct_label', 'the correct answer')
+                flash(f"Incorrect. The correct answer was {correct_label}.", 'danger')
+            state['asked'] = state.get('asked', 0) + 1
+            session['trivia_state'] = state
+            session.pop('trivia_question', None)
+            question = None
+
+    game_over = state.get('lives', 0) <= 0
+
+    if not game_over and question is None:
+        question = _generate_trivia_question()
+        if question:
+            session['trivia_question'] = question
+        else:
+            flash('Unable to load a trivia question right now.', 'warning')
+
+    session['trivia_state'] = state
+
+    return render_template('game.html', question=question, state=state, game_over=game_over)
