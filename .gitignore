@@ -12,3 +12,6 @@ venv/
 # Local environment overrides
 .env
 env/
+
+# Local database artifacts
+csi3335_baseball_app/.mariadb-data/
